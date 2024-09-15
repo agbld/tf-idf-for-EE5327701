@@ -1,5 +1,8 @@
 # Product Search Engine using TF-IDF with Jieba Tokenization
 
+This repository is used for demonstration in NTUST BigData Analysis course (EE5327701), for more details please visit: 
+https://moodle2.ntust.edu.tw/course/view.php?id=12122
+
 This repository implements a product search engine based on TF-IDF vectorization, incorporating tokenization through Jieba (a popular Chinese text segmentation library). The project allows for efficient searching of product names, based on both word-level and character-level TF-IDF vectorization techniques.
 
 ## Features
