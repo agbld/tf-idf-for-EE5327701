@@ -39,7 +39,7 @@ This repository contains a command-line based search system that utilizes TF-IDF
 ## Setup
 
 Before running the script, ensure that:
-1. Your data (CSV files) is placed in the `items_folder`. Each CSV should contain a `product_name` column.
+1. Your data (CSV files) is placed in the `items_folder` as specified in the command-line arguments (default: `./items`). Each CSV should contain a `product_name` column.
 2. Optional Jieba dictionaries (for tokenizing specific domains) are located in the `Lexicon_merge` directory.
 
 ## Usage
