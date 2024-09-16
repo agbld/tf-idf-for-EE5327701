@@ -1,5 +1,4 @@
-#%%
-# import libraries
+import time
 from tqdm import tqdm
 import numpy as np
 import pandas as pd
@@ -10,53 +9,54 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from argparse import ArgumentParser
 import pickle
-from scipy.sparse import csr_matrix
 
-#%%
-# args
-try: 
-    argparser = ArgumentParser()
-    argparser.add_argument('--items_folder', type=str, default='/mnt/E/Datasets/Ruten/item/activate_item')
-    argparser.add_argument('--file_idx', type=int, default=0, help='file index of activate_item folder, use -1 to load all files at once')
-    argparser.add_argument('--top_k', type=int, default=50)
-    argparser.add_argument('--N_ROWS', type=int, default=None)
+# Command line arguments
+argparser = ArgumentParser()
+argparser.add_argument('items_folder', type=str, default='./results', help='Folder containing the items (csv files) to search.')
+argparser.add_argument('-k', '--top_k', type=int, default=5, help='Number of top k items to return.')
+argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File index of activate_item folder. Use -1 to load all files at once.')
+argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
+argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
+argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
+args = argparser.parse_args()
+items_folder = args.items_folder
+top_k = args.top_k
+file_idx = args.file_idx
+interactive = args.interactive
+drop_duplicates = not args.all
+create = args.create
 
-    args = argparser.parse_args()
-    items_folder = args.items_folder
-    file_idx = args.file_idx
-    top_k = args.top_k
+if file_idx == -1:
+    print(f'Loading all files from: "{items_folder}"')
+else:
+    print(f'Loading {file_idx}th file from: "{items_folder}"')
 
-    N_ROWS = args.N_ROWS
-
-except:
-    items_folder = './results'
-    file_idx = -1
-    top_k = 50
-
-    # test args
-    N_ROWS = None
-
-print(f'processing {file_idx}th file...')
-
-#%%
 # load item file from activate_item folder by file_idx
+timer_start = time.time()
 if file_idx >= 0:
     path_to_item_file = [file for file in os.listdir(items_folder) if file.endswith('.csv')][file_idx]
-    items_df = pd.read_csv(os.path.join(items_folder, path_to_item_file), usecols=['product_name'])[:N_ROWS]
+    items_df = pd.read_csv(os.path.join(items_folder, path_to_item_file), usecols=['product_name'])
 else:
     path_to_item_files = [file for file in os.listdir(items_folder) if file.endswith('.csv')]
     items_df = []
     for file in path_to_item_files:
         items_df.append(pd.read_csv(os.path.join(items_folder, file), usecols=['product_name']))
-    items_df = pd.concat(items_df, ignore_index=True)[:N_ROWS]
+    print(f'Loaded {len(items_df)} files.')
+    items_df = pd.concat(items_df, ignore_index=True)
     path_to_item_file = 'all'
 
 # preprocess item_df
 items_df['product_name'] = items_df['product_name'].map(html.unescape)
 items_df['product_name'] = items_df['product_name'].fillna('')
 
-#%%
-# init tokenizer
+if drop_duplicates:
+    items_df = items_df.drop_duplicates(subset='product_name')
+print(f'Processed {len(items_df)} items in {time.time() - timer_start:.2f} seconds.')
+
+timer_start = time.time()
+
+# Disable jieba cache logging
+jieba.setLogLevel(jieba.logging.WARN)
 class JiebaTokenizer(object):
     def __init__(self, class_name):
         self.class_name = class_name
@@ -72,62 +72,69 @@ class JiebaTokenizer(object):
         stop_words = ['【','】','/','~','＊','、','（','）','+','‧',' ','']
         tokens = [t for t in tokens if t not in stop_words]
         return tokens
-    
+
 tokenizer = JiebaTokenizer(class_name=['type','brand','p-other'])
 
-#%%
-# TF-IDF
+# Path to save/load the models
+model_path = 'tf_idf_checkpoint.pkl'
 
-# Paths to save/load the models
-tfidf_model_path = 'tfidf_model.pkl'
-tfidf_char_model_path = 'tfidf_char_model.pkl'
-items_tfidf_matrix_path = 'items_tfidf_matrix.npz'
-items_tfidf_matrix_char_path = 'items_tfidf_matrix_char.npz'
+# Function to save the models
+def save_models_and_matrices(tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char, path):
+    with open(path, 'wb') as file:
+        pickle.dump({
+            'tfidf': tfidf,
+            'items_tfidf_matrix': items_tfidf_matrix,
+            'tfidf_char': tfidf_char,
+            'items_tfidf_matrix_char': items_tfidf_matrix_char
+        }, file)
 
-# Function to save the model and matrix
-def save_model_and_matrix(model, matrix, model_path, matrix_path):
-    with open(model_path, 'wb') as model_file:
-        pickle.dump(model, model_file)
-    np.savez(matrix_path, data=matrix.data, indices=matrix.indices, indptr=matrix.indptr, shape=matrix.shape)
+# Function to load the models
+def load_models_and_matrices(path):
+    with open(path, 'rb') as file:
+        data = pickle.load(file)
+    return data['tfidf'], data['items_tfidf_matrix'], data['tfidf_char'], data['items_tfidf_matrix_char']
 
-# Function to load the model and matrix
-def load_model_and_matrix(model_path, matrix_path):
-    with open(model_path, 'rb') as model_file:
-        model = pickle.load(model_file)
-    loader = np.load(matrix_path)
-    matrix = csr_matrix((loader['data'], loader['indices'], loader['indptr']), shape=loader['shape'])
-    return model, matrix
-
-# Check if the models and matrices are already saved
-if os.path.exists(tfidf_model_path) and os.path.exists(items_tfidf_matrix_path):
-    tfidf, items_tfidf_matrix = load_model_and_matrix(tfidf_model_path, items_tfidf_matrix_path)
+# Check if the models are already saved
+if os.path.exists(model_path) and not create:
+    # If saved, load the models
+    tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char = load_models_and_matrices(model_path)
 else:
-    tfidf = TfidfVectorizer(token_pattern=r"(?u)\b\w\w+\b", tokenizer=tokenizer, ngram_range=(1,2))
+    # If not saved, create the models
+    print('TF-IDF models not found. Creating them...')
+
+    tfidf = TfidfVectorizer(token_pattern=None, tokenizer=tokenizer, ngram_range=(1,2))
     items_tfidf_matrix = tfidf.fit_transform(tqdm(items_df['product_name']))
-    save_model_and_matrix(tfidf, items_tfidf_matrix, tfidf_model_path, items_tfidf_matrix_path)
-
-if os.path.exists(tfidf_char_model_path) and os.path.exists(items_tfidf_matrix_char_path):
-    tfidf_char, items_tfidf_matrix_char = load_model_and_matrix(tfidf_char_model_path, items_tfidf_matrix_char_path)
-else:
+    
     tfidf_char = TfidfVectorizer(token_pattern=r"(?u)\b\w\w+\b", analyzer='char')
     items_tfidf_matrix_char = tfidf_char.fit_transform(items_df['product_name'])
-    save_model_and_matrix(tfidf_char, items_tfidf_matrix_char, tfidf_char_model_path, items_tfidf_matrix_char_path)
 
-#%%
-def search(query):
-    query_tfidf = tfidf.transform([query]) # sparse array
-    scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
-    top_k_indices = np.argsort(-scores[0])[:top_k]
-    sum_of_score = sum(scores[0])
-    
-    if sum_of_score < 10 : 
-        query_tfidf = tfidf_char.transform([query]) # sparse array
-        scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
+    save_models_and_matrices(tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char, model_path)
+
+print(f'TF-IDF models loaded in {time.time() - timer_start:.2f} seconds.')
+
+# Run in interactive mode
+if interactive:
+    def search(query):
+        query_tfidf = tfidf.transform([query]) # sparse array
+        scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
         top_k_indices = np.argsort(-scores[0])[:top_k]
         sum_of_score = sum(scores[0])
         
-    top_k_names = items_df['product_name'].values[top_k_indices]
+        if sum_of_score < 10 : 
+            query_tfidf = tfidf_char.transform([query]) # sparse array
+            scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
+            top_k_indices = np.argsort(-scores[0])[:top_k]
+            sum_of_score = sum(scores[0])
+            
+        top_k_names = items_df['product_name'].values[top_k_indices]
 
-    return top_k_names
+        return top_k_names, scores[0]
 
-#%%
+    while True:
+        query = input('Enter query: ')
+        if query == 'exit':
+            break
+        top_k_names, scores = search(query)
+
+        for i, name in enumerate(top_k_names):
+            print(f'[Rank {i+1} ({round(scores[i], 4)})] {name}')

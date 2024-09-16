@@ -1,8 +1,5 @@
 Lexicon_merge
-items_tfidf_matrix_char.npz
-items_tfidf_matrix.npz
-tfidf_model.pkl
-tfidf_char_model.pkl
+tf_idf_checkpoint.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

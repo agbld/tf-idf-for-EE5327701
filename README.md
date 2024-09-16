@@ -1,69 +1,114 @@
-# Product Search Engine using TF-IDF with Jieba Tokenization
+# TF-IDF Search System for NTUST Big Data Analysis Course (EE5327701)
 
-This repository is used for demonstration in NTUST BigData Analysis course (EE5327701), for more details please visit: 
-https://moodle2.ntust.edu.tw/course/view.php?id=12122
-
-This repository implements a product search engine based on TF-IDF vectorization, incorporating tokenization through Jieba (a popular Chinese text segmentation library). The project allows for efficient searching of product names, based on both word-level and character-level TF-IDF vectorization techniques.
+This repository contains a command-line based search system that utilizes TF-IDF (Term Frequency-Inverse Document Frequency) and cosine similarity to retrieve the most relevant items based on a query. It is designed as a demonstration for the **NTUST Big Data Analysis course (EE5327701)**.
 
 ## Features
-- Tokenization of product names using custom dictionaries and Jieba.
-- TF-IDF vectorization of the tokenized product names.
-- Cosine similarity-based search to find the top matching products.
-- Handles both word and character-level TF-IDF searches to improve query matching.
+- **Efficient Text Search:** Uses TF-IDF vectorization and cosine similarity to return the top-k most similar items to a user query.
+- **Jieba Tokenization:** Supports Chinese tokenization using Jieba with custom dictionaries.
+- **Interactive Mode:** Allows users to search interactively for items and returns similarity scores.
+- **CSV File Handling:** Processes multiple CSV files containing product information.
+
+## Table of Contents
+- [Installation](#installation)
+- [Setup](#setup)
+- [Usage](#usage)
+- [Command-line Arguments](#command-line-arguments)
+- [Interactive Mode](#interactive-mode)
+- [Notes](#notes)
 
 ## Installation
 
-To install the required dependencies, run:
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-repo/tfidf-search.git
+   cd tfidf-search
+   ```
 
-```bash
-pip install -r requirements.txt
-```
+2. **Install the required dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+   The required dependencies include:
+   - `tqdm`
+   - `numpy`
+   - `pandas`
+   - `jieba`
+   - `scikit-learn`
 
 ## Setup
 
-1. **Prepare Product Files**: Ensure you have product data files in CSV format in the specified folder (default: `./results`).
-   - These files should contain a column named `product_name`.
-
-2. **Custom Dictionaries**: 
-   - Place custom dictionaries for Jieba tokenization in the `./Lexicon_merge/` folder (e.g., `type.txt`, `brand.txt`, `p-other.txt`).
-   - If any of these files are missing, Jieba will skip loading that dictionary and continue processing.
+Before running the script, ensure that:
+1. Your data (CSV files) is placed in the `items_folder`. Each CSV should contain a `product_name` column.
+2. Optional Jieba dictionaries (for tokenizing specific domains) are located in the `Lexicon_merge` directory.
 
 ## Usage
 
-You can run the script from the command line, specifying the dataset and parameters. For example:
+The program can be run from the command line with various options. Below is a basic usage example:
 
 ```bash
-python search_script.py --items_folder ./results --file_idx 0 --top_k 50 --N_ROWS 1000
+python tf_idf.py ./results -k 5 -i
 ```
 
-- `--items_folder`: The folder containing product CSV files.
-- `--file_idx`: Index of the file to load (use `-1` to load all files).
-- `--top_k`: Number of top matching products to return (default: 50).
-- `--N_ROWS`: Optionally limit the number of rows to load (default: None).
+This will load all CSV files from the `./results` folder, use the top 5 results, and run the program in interactive mode.
 
-## Search Functionality
+## Command-line Arguments
 
-After setting up, you can perform a product search using the following function:
+The script accepts the following command-line arguments:
 
-```python
-top_k_names = search("your query", top_k=10)
-```
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `items_folder` | `str` | `./results` | Folder containing the items (CSV files) to search. |
+| `-k`, `--top_k` | `int` | `5` | Number of top k items to return. |
+| `-f`, `--file_idx` | `int` | `-1` | File index of the item folder. Use `-1` to load all files at once. |
+| `-i`, `--interactive` | `flag` | `False` | Run the system in interactive mode for query input. |
+| `-a`, `--all` | `flag` | `False` | Load all items without dropping duplicates. |
+| `-c`, `--create` | `flag` | `False` | Create the TF-IDF models from scratch without using saved models. |
 
-This will return the top K matching product names based on the input query.
+### Example Usages
 
-### How it works:
-1. The product names are vectorized using TF-IDF.
-2. A cosine similarity score is calculated between the query and product names.
-3. The top `K` products with the highest similarity scores are returned.
+1. **Load all CSV files and return top 5 results:**
+   ```bash
+   python tf_idf.py ./results -k 5
+   ```
 
-## Saving and Loading Models
-The script automatically saves the TF-IDF models and product matrices for future use to avoid re-computation. These are saved as:
-- `tfidf_model.pkl`
-- `tfidf_char_model.pkl`
-- `items_tfidf_matrix.npz`
-- `items_tfidf_matrix_char.npz`
+2. **Load a specific CSV file by index (e.g., 2nd file):**
+   ```bash
+   python tf_idf.py ./results -f 2
+   ```
 
-If the files already exist, the script will load them from disk, making the search process faster.
+3. **Interactive mode for live querying:**
+   ```bash
+   python tf_idf.py ./results -i
+   ```
 
-## License
-This project is open-sourced under the MIT License.
+4. **Force creation of new TF-IDF models:**
+   ```bash
+   python tf_idf.py ./results -c
+   ```
+
+## Interactive Mode
+
+In interactive mode, the program allows users to input queries and return the top-k most similar product names based on TF-IDF cosine similarity. To enter interactive mode, use the `-i` flag.
+
+- To exit the interactive session, type `exit`.
+- Example interaction:
+
+   ```bash
+   Enter query: APLB 損傷髮質護髮洗髮露, 500ml, 1瓶
+   [Rank 1 (0.0036)] APLB 損傷髮質護髮洗髮露, 500ml, 1瓶
+   [Rank 2 (0.0213)] tsaio 上山採藥 東方美人順髮洗髮露, 600ml, 1瓶
+   [Rank 3 (0.0064)] tsaio 上山採藥 咖啡因養髮洗髮露, 600ml, 1瓶
+   [Rank 4 (0.0041)] moremo 咖啡因精華強健髮根洗髮精 油性髮適用, 500ml, 1瓶
+   [Rank 5 (0.0068)] tsaio 上山採藥 東方美人順髮洗髮露, 600ml, 2瓶
+   Enter query: exit
+   ```
+
+## Notes
+
+- The system supports Chinese text tokenization using Jieba. If you want to use custom dictionaries, place them in the `Lexicon_merge` folder and ensure the filenames match the specified categories (`type`, `brand`, `p-other`).
+- TF-IDF models are saved in `tf_idf_checkpoint.pkl` and loaded if they already exist, unless the `-c` flag is used to recreate them.
+
+---
+
+This repository is created for academic purposes as part of the NTUST Big Data Analysis course (EE5327701). Feel free to modify and extend it for other projects!
