@@ -27,6 +27,17 @@ interactive = args.interactive
 drop_duplicates = not args.all
 create = args.create
 
+# Check if the items folder exists
+if not os.path.exists(items_folder):
+    print(f'Error: Folder "{items_folder}" not found.')
+    response = input(f'Do you want to create the folder "{items_folder}"? (yes/no): ').strip().lower()
+    if response == 'yes':
+        os.makedirs(items_folder)
+        print(f'Folder "{items_folder}" created. Please add the items (csv files) to this folder and rerun the script.')
+    else:
+        print('Please provide the correct path to the items folder and rerun the script.')
+    exit()
+
 if file_idx == -1:
     print(f'Loading all files from: "{items_folder}"')
 else:
