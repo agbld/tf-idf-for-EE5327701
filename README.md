@@ -47,10 +47,10 @@ Before running the script, ensure that:
 The program can be run from the command line with various options. Below is a basic usage example:
 
 ```bash
-python tf_idf.py ./results -k 5 -i
+python tf_idf.py ./items -k 5 -i
 ```
 
-This will load all CSV files from the `./results` folder, use the top 5 results, and run the program in interactive mode.
+This will load all CSV files from the `./items` folder, use the top 5 results, and run the program in interactive mode.
 
 ## Command-line Arguments
 
@@ -58,7 +58,7 @@ The script accepts the following command-line arguments:
 
 | Argument | Type | Default | Description |
 |----------|------|---------|-------------|
-| `items_folder` | `str` | `./results` | Folder containing the items (CSV files) to search. |
+| `items_folder` | `str` | `./items` | Folder containing the items (CSV files) to search. |
 | `-k`, `--top_k` | `int` | `5` | Number of top k items to return. |
 | `-f`, `--file_idx` | `int` | `-1` | File index of the item folder. Use `-1` to load all files at once. |
 | `-i`, `--interactive` | `flag` | `False` | Run the system in interactive mode for query input. |
@@ -69,22 +69,22 @@ The script accepts the following command-line arguments:
 
 1. **Load all CSV files and return top 5 results:**
    ```bash
-   python tf_idf.py ./results -k 5
+   python tf_idf.py ./items -k 5
    ```
 
 2. **Load a specific CSV file by index (e.g., 2nd file):**
    ```bash
-   python tf_idf.py ./results -f 2
+   python tf_idf.py ./items -f 2
    ```
 
 3. **Interactive mode for live querying:**
    ```bash
-   python tf_idf.py ./results -i
+   python tf_idf.py ./items -i
    ```
 
 4. **Force creation of new TF-IDF models:**
    ```bash
-   python tf_idf.py ./results -c
+   python tf_idf.py ./items -c
    ```
 
 ## Interactive Mode

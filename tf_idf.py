@@ -12,7 +12,7 @@ import pickle
 
 # Command line arguments
 argparser = ArgumentParser()
-argparser.add_argument('items_folder', type=str, default='./results', help='Folder containing the items (csv files) to search.')
+argparser.add_argument('items_folder', type=str, help='Folder containing the items (csv files) to search.')
 argparser.add_argument('-k', '--top_k', type=int, default=5, help='Number of top k items to return.')
 argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File index of activate_item folder. Use -1 to load all files at once.')
 argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
