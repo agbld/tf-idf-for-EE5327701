@@ -95,12 +95,12 @@ In interactive mode, the program allows users to input queries and return the to
 - Example interaction:
 
    ```bash
-   Enter query: APLB 損傷髮質護髮洗髮露, 500ml, 1瓶
-   [Rank 1 (0.0036)] APLB 損傷髮質護髮洗髮露, 500ml, 1瓶
-   [Rank 2 (0.0213)] tsaio 上山採藥 東方美人順髮洗髮露, 600ml, 1瓶
-   [Rank 3 (0.0064)] tsaio 上山採藥 咖啡因養髮洗髮露, 600ml, 1瓶
-   [Rank 4 (0.0041)] moremo 咖啡因精華強健髮根洗髮精 油性髮適用, 500ml, 1瓶
-   [Rank 5 (0.0068)] tsaio 上山採藥 東方美人順髮洗髮露, 600ml, 2瓶
+   Enter query: 美髮
+   [Rank 1 (0.287)] APLB 損傷髮質護髮洗髮露, 500ml, 1瓶
+   [Rank 2 (0.2715)] moremo 咖啡因精華強健髮根洗髮精 油性髮適用, 500ml, 1瓶
+   [Rank 3 (0.2708)] ReEn 強健髮根洗髮精 油性髮質適用, 950ml, 1瓶
+   [Rank 4 (0.2606)] 長髮公主的秘密 魔髮香氛控油洗髮精, 1L, 1瓶
+   [Rank 5 (0.2383)] BRO&T!PS 健髮洗髮精 油性髮質, 1入, 500ml
    Enter query: exit
    ```
 

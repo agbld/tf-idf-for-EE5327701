@@ -18,6 +18,7 @@ argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File inde
 argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
 argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
 argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
+argparser.add_argument('--api_server', action='store_true', help='Run in API server mode.')
 args = argparser.parse_args()
 items_folder = args.items_folder
 top_k = args.top_k
@@ -112,23 +113,26 @@ else:
 
 print(f'TF-IDF models loaded in {time.time() - timer_start:.2f} seconds.')
 
-# Run in interactive mode
-if interactive:
-    def search(query):
-        query_tfidf = tfidf.transform([query]) # sparse array
-        scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
+# Function to search for the top k items
+def search(query):
+    query_tfidf = tfidf.transform([query]) # sparse array
+    scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
+    top_k_indices = np.argsort(-scores[0])[:top_k]
+    sum_of_score = sum(scores[0])
+    
+    if sum_of_score < 10 : 
+        query_tfidf = tfidf_char.transform([query]) # sparse array
+        scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
         top_k_indices = np.argsort(-scores[0])[:top_k]
         sum_of_score = sum(scores[0])
         
-        if sum_of_score < 10 : 
-            query_tfidf = tfidf_char.transform([query]) # sparse array
-            scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
-            top_k_indices = np.argsort(-scores[0])[:top_k]
-            sum_of_score = sum(scores[0])
-            
-        top_k_names = items_df['product_name'].values[top_k_indices]
+    top_k_names = items_df['product_name'].values[top_k_indices]
+    top_k_scores = scores[0][top_k_indices]
 
-        return top_k_names, scores[0]
+    return top_k_names, top_k_scores
+
+# Run in interactive mode
+if interactive and not args.api_server:
 
     while True:
         query = input('Enter query: ')
@@ -138,3 +142,19 @@ if interactive:
 
         for i, name in enumerate(top_k_names):
             print(f'[Rank {i+1} ({round(scores[i], 4)})] {name}')
+
+# Run in API server mode. 
+# Note: This part is not necessary to run if you are student. It is not required in the assignment.
+elif args.api_server:
+    from flask import Flask, request, jsonify
+    app = Flask(__name__)
+
+    @app.route('/search', methods=['GET'])
+    def search_api():
+        query = request.args.get('query')
+        top_k_names, scores = search(query)
+        return jsonify({'top_k_names': top_k_names.tolist(), 'scores': scores.tolist()})
+    
+    app.run(host='0.0.0.0', port=5000)
+
+    # Example usage: http://localhost:5000/search?query=iphone
