@@ -41,7 +41,10 @@ else:
     path_to_item_files = [file for file in os.listdir(items_folder) if file.endswith('.csv')]
     items_df = []
     for file in path_to_item_files:
-        items_df.append(pd.read_csv(os.path.join(items_folder, file), usecols=['product_name']))
+        try:
+            items_df.append(pd.read_csv(os.path.join(items_folder, file), usecols=['product_name']))
+        except:
+            print(f'Error loading file: {file}')
     print(f'Loaded {len(items_df)} files.')
     items_df = pd.concat(items_df, ignore_index=True)
     path_to_item_file = 'all'
