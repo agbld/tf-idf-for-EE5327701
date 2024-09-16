@@ -94,25 +94,23 @@ tokenizer = JiebaTokenizer(class_name=['type','brand','p-other'])
 model_path = 'tf_idf_checkpoint.pkl'
 
 # Function to save the models
-def save_models_and_matrices(tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char, path):
+def save_models_and_matrices(tfidf, items_tfidf_matrix, path):
     with open(path, 'wb') as file:
         pickle.dump({
             'tfidf': tfidf,
             'items_tfidf_matrix': items_tfidf_matrix,
-            'tfidf_char': tfidf_char,
-            'items_tfidf_matrix_char': items_tfidf_matrix_char
         }, file)
 
 # Function to load the models
 def load_models_and_matrices(path):
     with open(path, 'rb') as file:
         data = pickle.load(file)
-    return data['tfidf'], data['items_tfidf_matrix'], data['tfidf_char'], data['items_tfidf_matrix_char']
+    return data['tfidf'], data['items_tfidf_matrix']
 
 # Check if the models are already saved
 if os.path.exists(model_path) and not create:
     # If saved, load the models
-    tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char = load_models_and_matrices(model_path)
+    tfidf, items_tfidf_matrix = load_models_and_matrices(model_path)
 else:
     # If not saved, create the models
     print('TF-IDF models not found. Creating them...')
@@ -120,10 +118,10 @@ else:
     tfidf = TfidfVectorizer(token_pattern=None, tokenizer=tokenizer, ngram_range=(1,2))
     items_tfidf_matrix = tfidf.fit_transform(tqdm(items_df['product_name']))
     
-    tfidf_char = TfidfVectorizer(token_pattern=r"(?u)\b\w\w+\b", analyzer='char')
-    items_tfidf_matrix_char = tfidf_char.fit_transform(items_df['product_name'])
+    # tfidf_char = TfidfVectorizer(token_pattern=r"(?u)\b\w\w+\b", analyzer='char')
+    # items_tfidf_matrix_char = tfidf_char.fit_transform(items_df['product_name'])
 
-    save_models_and_matrices(tfidf, items_tfidf_matrix, tfidf_char, items_tfidf_matrix_char, model_path)
+    save_models_and_matrices(tfidf, items_tfidf_matrix, model_path)
 
 print(f'TF-IDF models loaded in {time.time() - timer_start:.2f} seconds.')
 
@@ -132,13 +130,13 @@ def search(query):
     query_tfidf = tfidf.transform([query]) # sparse array
     scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
     top_k_indices = np.argsort(-scores[0])[:top_k]
-    sum_of_score = sum(scores[0])
     
-    if sum_of_score < 10 : 
-        query_tfidf = tfidf_char.transform([query]) # sparse array
-        scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
-        top_k_indices = np.argsort(-scores[0])[:top_k]
-        sum_of_score = sum(scores[0])
+    # sum_of_score = sum(scores[0])
+    # if sum_of_score < 10 : 
+    #     query_tfidf = tfidf_char.transform([query]) # sparse array
+    #     scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
+    #     top_k_indices = np.argsort(-scores[0])[:top_k]
+    #     sum_of_score = sum(scores[0])
         
     top_k_names = items_df['product_name'].values[top_k_indices]
     top_k_scores = scores[0][top_k_indices]
