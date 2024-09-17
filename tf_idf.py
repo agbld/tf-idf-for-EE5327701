@@ -1,3 +1,6 @@
+# python .\tf_idf_revised.py ../02_程式集/Coupang_Scraping-main/results -k 5 -i
+# %%
+# Import required libraries
 import time
 from tqdm import tqdm
 import numpy as np
@@ -7,8 +10,8 @@ import os
 import html
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from argparse import ArgumentParser
 import pickle
+from argparse import ArgumentParser
 
 # Command line arguments
 argparser = ArgumentParser()
@@ -27,68 +30,98 @@ interactive = args.interactive
 drop_duplicates = not args.all
 create = args.create
 
+# %%
+
+# Define variables directly instead of using ArgumentParser
+# 以下是在 ipynb 測試時，我用變數指定替代 argparser 的功用
+# items_folder = '../02_程式集/Coupang_Scraping-main/results'
+# top_k = 5
+# file_idx = -1
+# interactive = True
+# drop_duplicates = True
+# create = False
+
+
+# %%
+
 # Check if the items folder exists
 if not os.path.exists(items_folder):
     print(f'Error: Folder "{items_folder}" not found.')
-    response = input(f'Do you want to create the folder "{items_folder}"? (yes/no): ').strip().lower()
-    if response == 'yes':
-        os.makedirs(items_folder)
-        print(f'Folder "{items_folder}" created. Please add the items (csv files) to this folder and rerun the script.')
+    # Create the folder if it doesn't exist in a non-interactive way
+    os.makedirs(items_folder)
+    print(f'Folder "{items_folder}" created. Please add the items (csv files) to this folder and rerun the script.')
+else:
+    if file_idx == -1:
+        print(f'Loading all files from: "{items_folder}"')
     else:
-        print('Please provide the correct path to the items folder and rerun the script.')
-    exit()
+        print(f'Loading {file_idx}th file from: "{items_folder}"')
 
-if file_idx == -1:
-    print(f'Loading all files from: "{items_folder}"')
+
+# %%
+# 設定 pickle 檔案路徑
+pickle_file = 'items_data.pkl'
+
+# 檢查 pickle 檔案是否存在
+if os.path.exists(pickle_file):
+    # 如果 pickle 檔案存在，直接加載
+    print(f'Loading data from {pickle_file}...')
+    with open(pickle_file, 'rb') as f:
+        items_df = pickle.load(f)
+    print(f'Loaded data from {pickle_file}. Total items: {len(items_df)}')
 else:
-    print(f'Loading {file_idx}th file from: "{items_folder}"')
+    # 如果 pickle 檔案不存在，重新合併 CSV 檔案
+    print(f'{pickle_file} not found. Merging CSV files...')
+    timer_start = time.time()
 
-# load item file from activate_item folder by file_idx
+    # 根據 file_idx 加載文件
+    if file_idx >= 0:
+        path_to_item_file = [file for file in os.listdir(items_folder) if file.endswith('.csv')][file_idx]
+        items_df = pd.read_csv(os.path.join(items_folder, path_to_item_file), usecols=['product_name'])
+    else:
+        path_to_item_files = [file for file in os.listdir(items_folder) if file.endswith('.csv')]
+        items_df = []
+        for file in path_to_item_files:
+            try:
+                items_df.append(pd.read_csv(os.path.join(items_folder, file), usecols=['product_name']))
+            except:
+                print(f'Error loading file: {file}')
+        print(f'Loaded {len(items_df)} files.')
+        items_df = pd.concat(items_df, ignore_index=True)
+
+    # 預處理 product_name 欄位
+    items_df['product_name'] = items_df['product_name'].map(html.unescape)
+    items_df['product_name'] = items_df['product_name'].fillna('')
+
+    if drop_duplicates:
+        items_df = items_df.drop_duplicates(subset='product_name')
+
+    print(f'Processed {len(items_df)} items in {time.time() - timer_start:.2f} seconds.')
+
+    # 保存為 pickle 檔案
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(items_df, f)
+    print(f'Data saved to {pickle_file}.')
+
+
+# %%
+# Initialize tokenizer
 timer_start = time.time()
-if file_idx >= 0:
-    path_to_item_file = [file for file in os.listdir(items_folder) if file.endswith('.csv')][file_idx]
-    items_df = pd.read_csv(os.path.join(items_folder, path_to_item_file), usecols=['product_name'])
-else:
-    path_to_item_files = [file for file in os.listdir(items_folder) if file.endswith('.csv')]
-    items_df = []
-    for file in path_to_item_files:
-        try:
-            items_df.append(pd.read_csv(os.path.join(items_folder, file), usecols=['product_name']))
-        except:
-            print(f'Error loading file: {file}')
-    print(f'Loaded {len(items_df)} files.')
-    items_df = pd.concat(items_df, ignore_index=True)
-    path_to_item_file = 'all'
 
-# preprocess item_df
-items_df['product_name'] = items_df['product_name'].map(html.unescape)
-items_df['product_name'] = items_df['product_name'].fillna('')
+# 定義簡單的分詞器
+def jieba_tokenizer(text):
+    # 使用 jieba 的精確模式進行分詞
+    tokens = jieba.lcut(text, cut_all=False)
+    # 定義不需要的符號列表
+    stop_words = ['【','】','/','~','＊','、','（','）','+','‧',' ','']
+    # 過濾掉不需要的符號
+    tokens = [t for t in tokens if t not in stop_words]
+    return tokens
 
-if drop_duplicates:
-    items_df = items_df.drop_duplicates(subset='product_name')
-print(f'Processed {len(items_df)} items in {time.time() - timer_start:.2f} seconds.')
+# 使用 jieba_tokenizer 進行分詞
+tokenizer = jieba_tokenizer
 
-timer_start = time.time()
 
-# Disable jieba cache logging
-jieba.setLogLevel(jieba.logging.WARN)
-class JiebaTokenizer(object):
-    def __init__(self, class_name):
-        self.class_name = class_name
-        for each_name in self.class_name:
-            userdict_path = './Lexicon_merge/{}.txt'.format(each_name)
-            if os.path.exists(userdict_path):
-                jieba.load_userdict(userdict_path)
-            else:
-                print(f"User dictionary {userdict_path} not found, skipping.")
-    
-    def __call__(self, x):
-        tokens = jieba.lcut(x, cut_all=False)
-        stop_words = ['【','】','/','~','＊','、','（','）','+','‧',' ','']
-        tokens = [t for t in tokens if t not in stop_words]
-        return tokens
-
-tokenizer = JiebaTokenizer(class_name=['type','brand','p-other'])
+# %%
 
 # Path to save/load the models
 model_path = 'tf_idf_checkpoint.pkl'
@@ -107,6 +140,9 @@ def load_models_and_matrices(path):
         data = pickle.load(file)
     return data['tfidf'], data['items_tfidf_matrix']
 
+
+# %%
+
 # Check if the models are already saved
 if os.path.exists(model_path) and not create:
     # If saved, load the models
@@ -118,12 +154,12 @@ else:
     tfidf = TfidfVectorizer(token_pattern=None, tokenizer=tokenizer, ngram_range=(1,2))
     items_tfidf_matrix = tfidf.fit_transform(tqdm(items_df['product_name']))
     
-    # tfidf_char = TfidfVectorizer(token_pattern=r"(?u)\b\w\w+\b", analyzer='char')
-    # items_tfidf_matrix_char = tfidf_char.fit_transform(items_df['product_name'])
-
     save_models_and_matrices(tfidf, items_tfidf_matrix, model_path)
 
 print(f'TF-IDF models loaded in {time.time() - timer_start:.2f} seconds.')
+
+
+# %%
 
 # Function to search for the top k items
 def search(query):
@@ -131,17 +167,11 @@ def search(query):
     scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
     top_k_indices = np.argsort(-scores[0])[:top_k]
     
-    # sum_of_score = sum(scores[0])
-    # if sum_of_score < 10 : 
-    #     query_tfidf = tfidf_char.transform([query]) # sparse array
-    #     scores = cosine_similarity(query_tfidf, items_tfidf_matrix_char)
-    #     top_k_indices = np.argsort(-scores[0])[:top_k]
-    #     sum_of_score = sum(scores[0])
-        
     top_k_names = items_df['product_name'].values[top_k_indices]
     top_k_scores = scores[0][top_k_indices]
 
     return top_k_names, top_k_scores
+
 
 # Run in interactive mode
 if interactive and not args.api_server:
@@ -155,18 +185,7 @@ if interactive and not args.api_server:
         for i, name in enumerate(top_k_names):
             print(f'[Rank {i+1} ({round(scores[i], 4)})] {name}')
 
-# Run in API server mode. 
-# Note: This part is not necessary to run if you are student. It is not required in the assignment.
-elif args.api_server:
-    from flask import Flask, request, jsonify
-    app = Flask(__name__)
+# %%
 
-    @app.route('/search', methods=['GET'])
-    def search_api():
-        query = request.args.get('query')
-        top_k_names, scores = search(query)
-        return jsonify({'top_k_names': top_k_names.tolist(), 'scores': scores.tolist()})
-    
-    app.run(host='0.0.0.0', port=5000)
 
-    # Example usage: http://localhost:5000/search?query=iphone
+
