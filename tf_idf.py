@@ -11,21 +11,32 @@ from argparse import ArgumentParser
 import pickle
 
 # Command line arguments
-argparser = ArgumentParser()
-argparser.add_argument('items_folder', type=str, help='Folder containing the items (csv files) to search.')
-argparser.add_argument('-k', '--top_k', type=int, default=5, help='Number of top k items to return.')
-argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File index of activate_item folder. Use -1 to load all files at once.')
-argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
-argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
-argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
-argparser.add_argument('--api_server', action='store_true', help='Run in API server mode.')
-args = argparser.parse_args()
-items_folder = args.items_folder
-top_k = args.top_k
-file_idx = args.file_idx
-interactive = args.interactive
-drop_duplicates = not args.all
-create = args.create
+try:
+    argparser = ArgumentParser()
+    argparser.add_argument('items_folder', type=str, help='Folder containing the items (csv files) to search.')
+    argparser.add_argument('-k', '--top_k', type=int, default=5, help='Number of top k items to return.')
+    argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File index of activate_item folder. Use -1 to load all files at once.')
+    argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
+    argparser.add_argument('-s', '--sample_size', type=int, default=100000, help='Number of items to sample from the dataset for TF-IDF model creation. Use -1 to load all items.')
+    argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
+    argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
+    argparser.add_argument('--api_server', action='store_true', help='Run in API server mode.')
+    args = argparser.parse_args()
+    items_folder = args.items_folder
+    top_k = args.top_k
+    file_idx = args.file_idx
+    interactive = args.interactive
+    sample_size = args.sample_size
+    drop_duplicates = not args.all
+    create = args.create
+except:
+    items_folder = './items'
+    top_k = 5
+    file_idx = -1
+    interactive = True
+    sample_size = 100000
+    drop_duplicates = True
+    create = True
 
 # Check if the items folder exists
 if not os.path.exists(items_folder):

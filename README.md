@@ -62,6 +62,7 @@ The script accepts the following command-line arguments:
 | `-k`, `--top_k` | `int` | `5` | Number of top k items to return. |
 | `-f`, `--file_idx` | `int` | `-1` | File index of the item folder. Use `-1` to load all files at once. |
 | `-i`, `--interactive` | `flag` | `False` | Run the system in interactive mode for query input. |
+| `-s`, `--sample_size` | `int` | `100000` | Number of items to sample from the dataset for TF-IDF model creation. Use -1 to load all items. |
 | `-a`, `--all` | `flag` | `False` | Load all items without dropping duplicates. |
 | `-c`, `--create` | `flag` | `False` | Create the TF-IDF models from scratch without using saved models. |
 
@@ -85,6 +86,11 @@ The script accepts the following command-line arguments:
 4. **Force creation of new TF-IDF models:**
    ```bash
    python tf_idf.py ./items -c
+   ```
+
+5. **Load all items without dropping duplicates:**
+   ```bash
+   python tf_idf.py ./items -a -s -1
    ```
 
 ## Interactive Mode
