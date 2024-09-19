@@ -19,6 +19,7 @@ argparser.add_argument('items_folder', type=str, help='Folder containing the ite
 argparser.add_argument('-k', '--top_k', type=int, default=5, help='Number of top k items to return.')
 argparser.add_argument('-f', '--file_idx', type=int, default=-1, help='File index of activate_item folder. Use -1 to load all files at once.')
 argparser.add_argument('-i', '--interactive', action='store_true', help='Run in interactive mode.')
+argparser.add_argument('-s', '--sample_size', type=int, default=100000, help='Number of items to sample from the dataset for TF-IDF model creation. Use -1 to load all items.')
 argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
 argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
 argparser.add_argument('--api_server', action='store_true', help='Run in API server mode.')
@@ -27,6 +28,7 @@ items_folder = args.items_folder
 top_k = args.top_k
 file_idx = args.file_idx
 interactive = args.interactive
+sample_size = args.sample_size
 drop_duplicates = not args.all
 create = args.create
 
@@ -38,6 +40,7 @@ create = args.create
 # top_k = 5
 # file_idx = -1
 # interactive = True
+# sample_size = -1
 # drop_duplicates = True
 # create = False
 
@@ -55,7 +58,6 @@ else:
         print(f'Loading all files from: "{items_folder}"')
     else:
         print(f'Loading {file_idx}th file from: "{items_folder}"')
-
 
 # %%
 # 設定 pickle 檔案路徑
@@ -87,6 +89,13 @@ else:
                 print(f'Error loading file: {file}')
         print(f'Loaded {len(items_df)} files.')
         items_df = pd.concat(items_df, ignore_index=True)
+
+    # Sample items from the dataset
+    if sample_size != -1:
+        items_df = items_df.sample(n=sample_size)
+
+    # Ensure all product_name entries are strings
+    items_df['product_name'] = items_df['product_name'].astype(str)
 
     # 預處理 product_name 欄位
     items_df['product_name'] = items_df['product_name'].map(html.unescape)
