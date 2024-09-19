@@ -20,8 +20,8 @@ This repository contains a command-line based search system that utilizes TF-IDF
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-repo/tfidf-search.git
-   cd tfidf-search
+   git clone https://github.com/agbld/tf-idf-for-EE5327701.git
+   cd tf-idf-for-EE5327701
    ```
 
 2. **Install the required dependencies:**
