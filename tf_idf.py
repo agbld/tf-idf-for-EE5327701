@@ -71,6 +71,13 @@ else:
     items_df = pd.concat(items_df, ignore_index=True)
     path_to_item_file = 'all'
 
+# Sample items from the dataset
+if sample_size != -1:
+    items_df = items_df.sample(n=sample_size)
+
+# Ensure all product_name entries are strings
+items_df['product_name'] = items_df['product_name'].astype(str)
+
 # preprocess item_df
 items_df['product_name'] = items_df['product_name'].map(html.unescape)
 items_df['product_name'] = items_df['product_name'].fillna('')

@@ -47,7 +47,7 @@ Before running the script, ensure that:
 The program can be run from the command line with various options. Below is a basic usage example:
 
 ```bash
-python tf_idf.py ./items -k 5 -i
+python tf_idf.py ./items -k 5 -ic
 ```
 
 This will load all CSV files from the `./items` folder, use the top 5 results, and run the program in interactive mode.
