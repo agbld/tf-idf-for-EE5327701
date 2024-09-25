@@ -1,6 +1,8 @@
 Lexicon_merge
 tf_idf_checkpoint.pkl
 items
+results
+results.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

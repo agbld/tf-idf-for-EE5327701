@@ -21,6 +21,7 @@ try:
     argparser.add_argument('-a', '--all', action='store_true', help='Load all items without dropping duplicates.')
     argparser.add_argument('-c', '--create', action='store_true', help='Create the TF-IDF models without using the saved models.')
     argparser.add_argument('--api_server', action='store_true', help='Run in API server mode.')
+    argparser.add_argument('--homework', action='store_true', help='Run in homework mode.')
     args = argparser.parse_args()
     items_folder = args.items_folder
     top_k = args.top_k
@@ -144,7 +145,7 @@ else:
 print(f'TF-IDF models loaded in {time.time() - timer_start:.2f} seconds.')
 
 # Function to search for the top k items
-def search(query):
+def search(query, top_k=top_k):
     query_tfidf = tfidf.transform([query]) # sparse array
     scores = cosine_similarity(query_tfidf, items_tfidf_matrix)
     top_k_indices = np.argsort(-scores[0])[:top_k]
@@ -162,7 +163,7 @@ def search(query):
     return top_k_names, top_k_scores
 
 # Run in interactive mode
-if interactive and not args.api_server:
+if interactive:
 
     while True:
         query = input('Enter query: ')
@@ -188,3 +189,45 @@ elif args.api_server:
     app.run(host='0.0.0.0', port=5000)
 
     # Example usage: http://localhost:5000/search?query=iphone
+
+# Run in homework mode
+elif args.homework:
+    """
+    This is an example of the homework only for who notice this branch :)
+    To run this, just follow the instructions below:
+    1. Do exactly the same steps until Usage section in the README.md file.
+    2. Run following command:
+        ```bash
+        python tf_idf.py ./items --homework
+        ```
+    """
+
+    # Find top 100 queries
+    from get_top_100_queries import find_top_k_queries
+    print('Finding top 100 queries...')
+    queries_df = find_top_k_queries(items_folder, 100)
+    
+    # Search for the top k items for each query
+    for i in range(len(queries_df)):
+        query = queries_df['name'][i]
+        print(f'Searching for query: {query} ({i+1}/{len(queries_df)})')
+        top_k_names, scores = search(query, queries_df['count'][i])
+        results = {
+            'top_k_names': top_k_names.tolist(),
+            'scores': scores.tolist()
+        }
+
+        # Convert results to DataFrame
+        results_df = pd.DataFrame.from_dict(results).reset_index()
+        results_df.columns = ['query', 'top_k_names', 'scores']
+
+        # Save results to CSV
+        results_folder = './results'
+        if not os.path.exists(results_folder):
+            os.makedirs(results_folder)
+        results_df.to_csv(os.path.join(results_folder, f'M11207314_tfidf_{query}.csv'), index=False, encoding='utf-8')
+
+    # Compress the results folder to a zip file
+    print('Compressing the results folder...')
+    import shutil
+    shutil.make_archive(results_folder, 'zip', results_folder)
